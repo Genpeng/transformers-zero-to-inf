@@ -73,7 +73,7 @@ model.compile(
 train_history = model.fit(train_dataset, validation_data=valid_dataset, epochs=num_train_epochs)
 
 pred_output_valid = model.predict(valid_dataset, batch_size=batch_size)
-pred_valid = pred_valid.logits.argmax(axis=-1)
+pred_valid = pred_output_valid.logits.argmax(axis=-1)
 print(classification_report(valid_emotion['label'], pred_valid, target_names=label_names))
 
 def plot_confusion_matrix(y_true, y_pred, labels, figsize=(6, 6)):
