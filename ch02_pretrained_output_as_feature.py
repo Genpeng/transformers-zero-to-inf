@@ -34,11 +34,11 @@ emotions_encoded = emotions.map(tokenize, batched=True, batch_size=None)
 
 
 def extract_last_hidden_states(batch):
-	inputs = {k: v.to(device) for k, v in batch.items() if k in tokenizer.model_input_names}
-	with torch.no_grad():
-		outputs = model(**inputs)
-		last_hidden_state = outputs.last_hidden_state 
-	return {"last_hidden_state": last_hidden_state[:, 0, :].cpu().numpy()}
+    inputs = {k: v.to(device) for k, v in batch.items() if k in tokenizer.model_input_names}
+    with torch.no_grad():
+        outputs = model(**inputs)
+        last_hidden_state = outputs.last_hidden_state
+    return {"last_hidden_state": last_hidden_state[:, 0, :].cpu().numpy()}
 
 emotions_encoded.set_format("torch", columns=["input_ids", "attention_mask", "label"])
 emotions_hidden = emotions_encoded.map(extract_last_hidden_states, batched=True)  # the default value of `batch_size` is 1000

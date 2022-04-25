@@ -3,20 +3,22 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datasets import load_dataset
-from transformers import AutoTokenizer, AutoModel, DistilBertTokenizer, DistilBertModel
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from transformers import Trainer, TrainingArguments
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# global variables
-model_ckpt = "distilbert-base-uncased"
+# data training arguments
 # data_dir = "./data"
-output_dir = f"{model_ckpt}-finetuned-emotion"
+# max_length = 256
 
-# hyper-parameters
+# model arguments
+model_name = "distilbert-base-uncased"
+
+# training arguments
+output_dir = f"{model_name}-finetuned-emotion"
 num_train_epochs = 2
 learning_rate = 2e-5
 batch_size = 64
@@ -31,17 +33,17 @@ num_labels = len(label_names)
 # ==================================================================================================== #
 # Step 2: Feature engineering
 
-
-def tokenize(tokenizer, batch):
-    return tokenizer(batch["text"], padding=True, truncation=True)
-
-tokenizer = AutoTokenizer.from_pretrained(model_ckpt)
-emotions_encoded = emotions.map(lambda batch: tokenize(tokenizer, batch), batched=True, batch_size=None)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+emotions_encoded = emotions.map(
+    lambda batch: tokenizer(batch, padding=True, truncation=True),
+    batched=True,
+    batch_size=None
+)
 
 # ==================================================================================================== #
 # Step 3: Build our model
 
-model = AutoModelForSequenceClassification.from_pretrained(model_ckpt, num_labels=num_labels).to(device)
+model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels).to(device)
 
 # ==================================================================================================== #
 # Step 4: Train & Evaluate 
@@ -61,20 +63,20 @@ training_args = TrainingArguments(
     learning_rate=learning_rate, 
     per_device_train_batch_size=batch_size, 
     per_device_eval_batch_size=batch_size, 
-    evaluation_strategy="epoch", 
-    disable_tqdm=False, 
-    logging_steps=logging_steps, 
-    push_to_hub=False, 
-    log_level="error"
+    evaluation_strategy="epoch",
+    logging_steps=logging_steps,
+    log_level="error",
+    disable_tqdm=False,
+    push_to_hub=False,
 )
 
 trainer = Trainer(
     tokenizer=tokenizer, 
-    model=model, 
+    model=model,
+    compute_metrics=compute_metrics,
     args=training_args, 
     train_dataset=emotions_encoded["train"], 
-    eval_dataset=emotions_encoded["validation"], 
-    compute_metrics=compute_metrics, 
+    eval_dataset=emotions_encoded["validation"],
 )
 
 train_output = trainer.train()
@@ -94,5 +96,5 @@ def plot_confusion_matrix(y_true, y_pred, labels, figsize=(6, 6)):
     plt.title("Normalized Confusion Matrix")
     plt.show()
 
-plot_confusion_matrix(y_valid, pred_valid, label_names)
 
+plot_confusion_matrix(y_valid, pred_valid, label_names)
